@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VaultLock — Secure Password Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tab-active   { border-bottom: 2px solid #6366f1; color: #6366f1; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #94a3b8; }
+    .input-field  {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      width: 100%;
+      font-size: 0.925rem;
+      transition: border-color 0.15s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .input-field::placeholder { color: #475569; }
+    .btn-primary {
+      background: #6366f1;
+      color: #fff;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      font-weight: 600;
+      width: 100%;
+      transition: background 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+    .btn-primary:hover   { background: #4f46e5; }
+    .btn-primary:active  { transform: scale(0.98); }
+    .btn-primary:disabled { background: #3730a3; cursor: not-allowed; opacity: 0.7; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+  </style>
+</head>
+
+<body class="h-full bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md fade-in">
+
+    <!-- ── Logo ────────────────────────────────────────────────────── -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-4">
+        <!-- Shield icon -->
+        <svg class="w-7 h-7 text-indigo-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-tight">VaultLock</h1>
+      <p class="text-slate-400 text-sm mt-1">Zero-knowledge password manager</p>
+    </div>
+
+    <!-- ── Card ────────────────────────────────────────────────────── -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="px-6 pt-5">
+              <div class="flex items-center gap-2 rounded-lg px-4 py-3 text-sm
+                {% if category == 'error' %}
+                  bg-red-500/10 border border-red-500/30 text-red-300
+                {% else %}
+                  bg-emerald-500/10 border border-emerald-500/30 text-emerald-300
+                {% endif %}">
+                {% if category == 'error' %}
+                  <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+                  </svg>
+                {% else %}
+                  <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+                  </svg>
+                {% endif %}
+                {{ message }}
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Tab switcher -->
+      <div class="flex border-b border-slate-800 px-6 pt-5 gap-6">
+        <button id="tab-login"
+          onclick="switchTab('login')"
+          class="pb-3 text-sm font-semibold transition-all tab-active">
+          Sign In
+        </button>
+        <button id="tab-register"
+          onclick="switchTab('register')"
+          class="pb-3 text-sm font-semibold transition-all tab-inactive">
+          Create Account
+        </button>
+      </div>
+
+      <!-- ── Login Form ────────────────────────────────────────────── -->
+      <div id="pane-login" class="p-6 space-y-4">
+        <form action="/login" method="POST" onsubmit="setLoading(this)">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Email address</label>
+              <input class="input-field" type="email" name="email"
+                placeholder="you@example.com" required autocomplete="email" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Master Password</label>
+              <div class="relative">
+                <input class="input-field pr-10" type="password" id="login-pw" name="password"
+                  placeholder="Your master password" required autocomplete="current-password" />
+                <button type="button" onclick="togglePw('login-pw', this)"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn-primary mt-2" type="submit" id="login-btn">
+              Sign In
+            </button>
+          </div>
+        </form>
+
+        <!-- Security notice -->
+        <div class="flex items-start gap-2 rounded-lg bg-slate-800/60 border border-slate-700/50 p-3 mt-4">
+          <svg class="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Login takes a moment — your password is run through
+            <strong class="text-slate-300">600,000 rounds of PBKDF2</strong>
+            to protect against brute-force attacks.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Register Form ─────────────────────────────────────────── -->
+      <div id="pane-register" class="p-6 space-y-4 hidden">
+        <form action="/register" method="POST" onsubmit="setLoading(this)">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Email address</label>
+              <input class="input-field" type="email" name="email"
+                placeholder="you@example.com" required autocomplete="email" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">
+                Master Password
+                <span class="ml-1 text-slate-500 font-normal">(min. 12 characters)</span>
+              </label>
+              <div class="relative">
+                <input class="input-field pr-10" type="password" id="reg-pw" name="password"
+                  placeholder="Choose a strong master password" required minlength="12"
+                  autocomplete="new-password" oninput="updateRegStrength(this.value)" />
+                <button type="button" onclick="togglePw('reg-pw', this)"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </button>
+              </div>
+              <!-- Strength bar for master password -->
+              <div class="mt-2 space-y-1" id="reg-strength-wrap" style="display:none">
+                <div class="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+                  <div id="reg-strength-bar" class="h-full rounded-full transition-all duration-300" style="width:0%"></div>
+                </div>
+                <p id="reg-strength-text" class="text-xs text-slate-400"></p>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1.5">Confirm Password</label>
+              <input class="input-field" type="password" name="confirm"
+                placeholder="Repeat your master password" required minlength="12"
+                autocomplete="new-password" />
+            </div>
+            <button class="btn-primary mt-2" type="submit">
+              Create Account
+            </button>
+          </div>
+        </form>
+
+        <!-- Warning -->
+        <div class="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mt-4">
+          <svg class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-xs text-amber-200/80 leading-relaxed">
+            <strong class="text-amber-300">If you forget your master password, your data is unrecoverable.</strong>
+            There is no reset option — this is what makes it secure.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-slate-600 mt-6">
+      AES-256-GCM · PBKDF2-SHA256 · Zero-knowledge storage
+    </p>
+  </div>
+
+  <script>
+    // ── Tab switching ─────────────────────────────────────────────────
+    const activeTab   = '{{ tab|default("login") }}';
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('pane-login').classList.toggle('hidden', !isLogin);
+      document.getElementById('pane-register').classList.toggle('hidden', isLogin);
+      document.getElementById('tab-login').className    = 'pb-3 text-sm font-semibold transition-all ' + (isLogin  ? 'tab-active' : 'tab-inactive');
+      document.getElementById('tab-register').className = 'pb-3 text-sm font-semibold transition-all ' + (!isLogin ? 'tab-active' : 'tab-inactive');
+    }
+    // Apply on load (in case of flash redirect back to register)
+    if (activeTab === 'register') switchTab('register');
+
+    // ── Password visibility toggle ────────────────────────────────────
+    function togglePw(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      btn.querySelector('svg').style.opacity = isText ? '1' : '0.4';
+    }
+
+    // ── Loading state on form submit ──────────────────────────────────
+    function setLoading(form) {
+      const btn = form.querySelector('button[type=submit]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Please wait…'; }
+    }
+
+    // ── Master password strength meter (register page) ────────────────
+    function calcEntropy(pw) {
+      let pool = 0;
+      if (/[A-Z]/.test(pw)) pool += 26;
+      if (/[a-z]/.test(pw)) pool += 26;
+      if (/[0-9]/.test(pw)) pool += 10;
+      if (/[^A-Za-z0-9]/.test(pw)) pool += 32;
+      return pool ? Math.floor(pw.length * Math.log2(pool)) : 0;
+    }
+
+    function updateRegStrength(pw) {
+      const wrap = document.getElementById('reg-strength-wrap');
+      const bar  = document.getElementById('reg-strength-bar');
+      const text = document.getElementById('reg-strength-text');
+      if (!pw) { wrap.style.display = 'none'; return; }
+      wrap.style.display = '';
+      const bits = calcEntropy(pw);
+      const pct  = Math.min(100, (bits / 100) * 100);
+      bar.style.width = pct + '%';
+      if (bits < 40) {
+        bar.style.background = '#ef4444'; text.textContent = `Weak — ${bits} bits of entropy`;
+      } else if (bits < 60) {
+        bar.style.background = '#f97316'; text.textContent = `Fair — ${bits} bits`;
+      } else if (bits < 80) {
+        bar.style.background = '#eab308'; text.textContent = `Good — ${bits} bits`;
+      } else {
+        bar.style.background = '#22c55e'; text.textContent = `Strong — ${bits} bits ✓`;
+      }
+    }
+  </script>
+</body>
+</html>
