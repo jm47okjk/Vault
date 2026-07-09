@@ -1,7 +1,16 @@
 # VaultLock — Complete Project Explanation
+
 ### "How does every single line actually work?"
 
 This document explains the **entire project from the ground up** — the theory, the Python, and the HTML. Read it like a book, in order.
+
+## 🌐 Live Demo
+
+Vault is available online and can be accessed using the following link:
+
+**🔗 https://vault-project.onrender.com/login**
+
+> **Note:** Since the application is hosted on Render's free plan, the first load may take 30–60 seconds if the server is sleeping.
 
 ---
 
